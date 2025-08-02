@@ -8,7 +8,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 require('dotenv').config();
 
-const { sequelize } = require('./models');
+const { sequelize } = require('./config/database');
 const authRoutes = require('./routes/auth');
 const ticketRoutes = require('./routes/tickets');
 const userRoutes = require('./routes/users');

@@ -1,58 +1,64 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User } = require('../models');
+require('dotenv').config();
 
-const auth = async (req, res, next) => {
+// JWT Authentication Middleware
+const authenticateToken = async (req, res, next) => {
   try {
-    // Get token from header
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: 'No token provided, authorization denied'
+        message: 'Access token is required'
       });
     }
 
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id || decoded.userId;
     
-    // Find user
-    const user = await User.findByPk(decoded.userId);
-    
+    const user = await User.findByPk(userId);
     if (!user || !user.is_active) {
       return res.status(401).json({
         success: false,
-        message: 'Token is not valid'
+        message: 'Invalid token or user not found'
       });
     }
 
-    // Add user to request object
-    req.user = user;
-    next();
+    req.user = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      first_name: user.first_name,
+      last_name: user.last_name
+    };
 
+    next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    res.status(401).json({
+    console.error('Authentication error:', error);
+    return res.status(403).json({
       success: false,
-      message: 'Token is not valid'
+      message: 'Invalid or expired token'
     });
   }
 };
 
-// Role-based authorization middleware
-const authorize = (...roles) => {
+// Role-based Access Control Middleware
+const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({
         success: false,
-        message: 'Not authorized'
+        message: 'Authentication required'
       });
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'Access denied - insufficient permissions'
+        message: 'Insufficient permissions'
       });
     }
 
@@ -60,5 +66,17 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = auth;
-module.exports.authorize = authorize;
+// Convenience functions
+const requireAdmin = requireRole(['admin']);
+const requireAgentOrAdmin = requireRole(['agent', 'admin']);
+
+// Alternative name for requireRole (if you prefer "authorize")
+const authorize = (...roles) => requireRole(roles);
+
+module.exports = {
+  authenticateToken,
+  requireRole,
+  requireAdmin,
+  requireAgentOrAdmin,
+  authorize  // ← Added this export
+};

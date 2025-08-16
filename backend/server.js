@@ -145,3 +145,11 @@ const PORT = process.env.PORT || 5000;
 })();
 
 module.exports = { app, io };
+
+
+
+// Add this line with your other route imports
+const adminRoutes = require('./routes/admin');
+
+// Add this line with your other route definitions
+app.use('/api/admin', adminRoutes);

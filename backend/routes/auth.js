@@ -3,11 +3,11 @@ const router = express.Router();
 const { 
   register, 
   login, 
-  getMe, 
-  registerValidation, 
-  loginValidation 
+  getMe,
+  registerValidation,
+  loginValidation
 } = require('../controllers/authController');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // @route   POST /api/auth/register
 // @desc    Register a new user
@@ -22,6 +22,6 @@ router.post('/login', loginValidation, login);
 // @route   GET /api/auth/me
 // @desc    Get current user
 // @access  Private
-router.get('/me', auth, getMe);
+router.get('/me', authenticateToken, getMe);
 
 module.exports = router;

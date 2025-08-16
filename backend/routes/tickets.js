@@ -10,11 +10,11 @@ const {
   createTicketValidation,
   addCommentValidation
 } = require('../controllers/ticketController');
-const auth = require('../middleware/auth');
-const { authorize } = require('../middleware/auth');
+const { authenticateToken, requireRole } = require('../middleware/auth');
+const { Ticket } = require('../models'); // ← Add this import
 
 // All routes require authentication
-router.use(auth);
+router.use(authenticateToken); // ← Fixed: use specific function
 
 // @route   GET /api/tickets
 // @desc    Get all tickets with filtering
@@ -49,21 +49,39 @@ router.post('/:id/vote', voteTicket);
 // @route   PATCH /api/tickets/:id/assign
 // @desc    Assign ticket to agent
 // @access  Private (Agents and Admins only)
-router.patch('/:id/assign', authorize('agent', 'admin'), async (req, res) => {
+router.patch('/:id/assign', requireRole(['agent', 'admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const { assigneeId } = req.body;
 
     const ticket = await Ticket.findByPk(id);
     if (!ticket) {
-      return res.status(404).json({ success: false, message: 'Ticket not found' });
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Ticket not found' 
+      });
     }
 
     await ticket.update({ assigned_to: assigneeId });
     
-    res.json({ success: true, message: 'Ticket assigned successfully' });
+    // Fetch updated ticket with assignee info
+    const updatedTicket = await Ticket.findByPk(id, {
+      include: [
+        { model: require('../models/User'), as: 'assignee', attributes: ['id', 'first_name', 'last_name'] }
+      ]
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Ticket assigned successfully',
+      data: updatedTicket
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error' });
+    console.error('Assign ticket error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Internal server error' 
+    });
   }
 });
 

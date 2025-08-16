@@ -13,10 +13,12 @@
 
 # misc
 .DS_Store
+.env                    # ← ADD THIS LINE
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+backend/.env            # ← ADD THIS LINE TOO (for safety)
 
 npm-debug.log*
 yarn-debug.log*

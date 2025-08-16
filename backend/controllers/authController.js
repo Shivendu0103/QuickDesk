@@ -1,11 +1,14 @@
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
-const { Op } = require('sequelize'); // ← ADD THIS LINE
+const { Op } = require('sequelize');
 const User = require('../models/User');
 
 // Generate JWT token
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ 
+    id: userId,
+    userId: userId  
+  }, process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
 // Register user
@@ -22,10 +25,10 @@ const register = async (req, res) => {
 
     const { username, email, password, firstName, lastName } = req.body;
 
-    // Check if user already exists - FIXED SYNTAX
+    // Check if user already exists
     const existingUser = await User.findOne({
       where: {
-        [Op.or]: [{ email }, { username }] // ← CHANGED FROM $or TO [Op.or]
+        [Op.or]: [{ email }, { username }]
       }
     });
 
